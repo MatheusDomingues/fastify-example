@@ -1,5 +1,5 @@
 {
-  "name": "linkify",
+  "name": "linkify-api",
   "version": "1.0.0",
   "description": "API de conexão com WhatsApp",
   "type": "module",
