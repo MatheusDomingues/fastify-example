@@ -1,6 +1,6 @@
-import { z } from "zod"
+import { z } from 'zod'
 
-import { userDtoSchema } from "./user.schema.js"
+import { userDtoSchema } from '../user/user.schema.js'
 
 export const organizationDtoSchema = z.object({
   id: z.string().uuid(),

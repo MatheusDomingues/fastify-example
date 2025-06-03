@@ -1,27 +1,25 @@
-import { OrganizationDto } from "./organization.dto.js"
-import { UserModel } from "../models/user.model.js"
+import { OrganizationDto } from './organization.dto.js'
+import { UserDtoSchema } from '../../modules/user/user.schema.js'
+import { UserModel } from '../models/user.model.js'
 
-export class UserDto {
-  id: string
-  createdAt: Date
-  updatedAt: Date
-  name: string
-  email: string
-  status?: string
-  organizations?: Omit<OrganizationDto, "users">[]
-
-  constructor(data: UserModel, status?: string, omitOrgs?: boolean) {
-    this.id = data?.id
-    this.createdAt = data?.createdAt
-    this.updatedAt = data?.updatedAt
-    this.name = data?.name
-    this.email = data?.email
-    this.status = status
-    {
-      !omitOrgs &&
-        (this.organizations = data?.organizations?.map(
-          organization => new OrganizationDto(organization?.organization, true)
-        ))
-    }
+export function UserDto(data: UserModel, status?: string, omitOrgs?: boolean): UserDtoSchema {
+  const dto = {
+    id: data?.id,
+    createdAt: data?.createdAt,
+    updatedAt: data?.updatedAt,
+    name: data?.name,
+    email: data?.email,
+    status: status,
+    organizations: !omitOrgs
+      ? data?.organizations?.map(organization => OrganizationDto(organization?.organization, true)) || []
+      : undefined,
   }
+
+  Object.keys(dto).forEach(key => {
+    if (dto[key] === undefined) {
+      delete dto[key]
+    }
+  })
+
+  return dto
 }

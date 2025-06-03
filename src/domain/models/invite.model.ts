@@ -1,30 +1,16 @@
-import { $Enums, Invite } from "@prisma/client"
+import { $Enums } from '@prisma/client'
 
-import { OrganizationModel } from "./organization.model.js"
-import { UserModel } from "./user.model.js"
+import { OrganizationModel } from './organization.model.js'
+import { UserModel } from './user.model.js'
 
-export class InviteModel implements Invite {
+export type InviteModel = {
   id: number
-  email: string
-  status: $Enums.InviteStatus
   createdAt: Date
   updatedAt: Date
-  userId: string | null
+  email: string
+  status: $Enums.InviteStatus
   organizationId: string
+  userId?: string
   organization?: OrganizationModel
   user?: UserModel
-
-  constructor(data: {
-    id?: number
-    email: string
-    status?: $Enums.InviteStatus
-    userId?: string | null
-    organizationId: string
-  }) {
-    this.id = data?.id
-    this.email = data?.email
-    this.status = data?.status || "PENDING"
-    this.userId = data?.userId
-    this.organizationId = data?.organizationId
-  }
 }

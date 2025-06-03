@@ -4,3 +4,5 @@ build
 dist
 
 /src/generated/prisma
+sessions
+logs

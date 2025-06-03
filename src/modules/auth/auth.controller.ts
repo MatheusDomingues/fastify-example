@@ -1,118 +1,72 @@
-import { FastifyReply, FastifyRequest } from "fastify"
+import { FastifyReply, FastifyRequest } from 'fastify'
 
-import { LoginUseCase } from "./use-cases/login.use-case.js"
-import { RegisterUseCase } from "./use-cases/register.use-case.js"
-import { ResetPasswordUseCase } from "./use-cases/reset-password.use-case.js"
-import { ValidateCodeUseCase } from "./use-cases/validate-code.use-case.js"
-import { UserDto } from "../../domain/dtos/user.dto.js"
-import {
-  ForgotPasswordInput,
-  LoginInput,
-  RegisterInput,
-  ResetPasswordInput,
-  ValidateCodeInput,
-} from "../../domain/schemas/auth.schema.js"
-import { ResponseError } from "../../shared/utils/response-error.js"
-import { FastifyTypedInstance } from "../../types/fastifyTypedInstance.js"
-import { OrganizationRepository } from "../organization/organization.repository.js"
-import { UserRepository } from "../user/user.repository.js"
-import { ForgotPasswordUseCase } from "./use-cases/forgot-password.use-case.js"
-import { MailService } from "../../shared/services/mail.service.js"
+import { ForgotPasswordInput, LoginInput, RegisterInput, ResetPasswordInput, ValidateCodeInput } from './auth.schema.js'
+import { AuthService } from './auth.service.js'
+import { UserDto } from '../../domain/dtos/user.dto.js'
+import { handleError } from '../../shared/utils/handle-error.js'
+import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
+import { OrganizationRepository } from '../organization/organization.repository.js'
+import { UserRepository } from '../user/user.repository.js'
 
-export class AuthController {
-  private registerUseCase: RegisterUseCase
-  private loginUseCase: LoginUseCase
-  private forgotPasswordUseCase: ForgotPasswordUseCase
-  private validateCodeUseCase: ValidateCodeUseCase
-  private resetPasswordUseCase: ResetPasswordUseCase
+export function AuthController(
+  prisma: FastifyTypedInstance['prisma'],
+  redis: FastifyTypedInstance['redis'],
+  mail: FastifyTypedInstance['mail']
+) {
+  const userRepository = UserRepository(prisma)
+  const organizationRepository = OrganizationRepository(prisma)
 
-  constructor(
-    private prisma: FastifyTypedInstance["prisma"],
-    private redis: FastifyTypedInstance["redis"]
-  ) {
-    const userRepository = new UserRepository(prisma)
-    const organizationRepository = new OrganizationRepository(prisma)
-    const mailService = new MailService()
+  const authService = AuthService(redis, mail, userRepository, organizationRepository)
 
-    this.registerUseCase = new RegisterUseCase(userRepository, organizationRepository)
-    this.loginUseCase = new LoginUseCase(prisma)
-    this.forgotPasswordUseCase = new ForgotPasswordUseCase(userRepository, mailService, redis)
-    this.validateCodeUseCase = new ValidateCodeUseCase(redis)
-    this.resetPasswordUseCase = new ResetPasswordUseCase(userRepository, redis)
-  }
+  return {
+    register: async (request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) => {
+      try {
+        const response = await authService.register(request.body)
 
-  async register(request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) {
-    try {
-      const response = await this.registerUseCase.execute(request.body)
-
-      return reply.code(201).send({ message: response })
-    } catch (error) {
-      if (error instanceof ResponseError) {
-        return reply.code(error.statusCode).send({ message: error.message })
+        return reply.code(201).send({ message: response })
+      } catch (error) {
+        handleError(error, reply)
       }
+    },
 
-      reply.log.error(error)
-      return reply.code(500).send({ message: "Internal server error" })
-    }
-  }
+    login: async (request: FastifyRequest<{ Body: LoginInput }>, reply: FastifyReply) => {
+      try {
+        const user = await authService.login(request.body)
 
-  async login(request: FastifyRequest<{ Body: LoginInput }>, reply: FastifyReply) {
-    try {
-      const user = await this.loginUseCase.execute(request.body)
-
-      reply.code(200).send(new UserDto(user))
-    } catch (error) {
-      if (error instanceof ResponseError) {
-        reply.status(error.statusCode).send({ message: error.message })
+        reply.code(200).send(UserDto(user))
+      } catch (error) {
+        handleError(error, reply)
       }
+    },
 
-      reply.log.error(error)
-      return reply.code(500).send("Internal server error")
-    }
-  }
+    forgotPassword: async (request: FastifyRequest<{ Body: ForgotPasswordInput }>, reply: FastifyReply) => {
+      try {
+        const response = await authService.forgotPassword(request.body)
 
-  async forgotPassword(request: FastifyRequest<{ Body: ForgotPasswordInput }>, reply: FastifyReply) {
-    try {
-      const response = await this.forgotPasswordUseCase.execute(request.body)
-
-      return reply.code(200).send({ message: response })
-    } catch (error) {
-      if (error instanceof ResponseError) {
-        return reply.code(error.statusCode).send({ message: error.message })
+        return reply.code(200).send({ message: response })
+      } catch (error) {
+        handleError(error, reply)
       }
+    },
 
-      reply.log.error(error)
-      return reply.code(500).send({ message: "Internal server error" })
-    }
-  }
+    validateCode: async (request: FastifyRequest<{ Body: ValidateCodeInput }>, reply: FastifyReply) => {
+      try {
+        const response = await authService.validateCode(request.body)
 
-  async validateCode(request: FastifyRequest<{ Body: ValidateCodeInput }>, reply: FastifyReply) {
-    try {
-      const response = await this.validateCodeUseCase.execute(request.body)
-
-      return reply.code(200).send({ message: response })
-    } catch (error) {
-      if (error instanceof ResponseError) {
-        return reply.code(error.statusCode).send({ message: error.message })
+        return reply.code(200).send({ message: response })
+      } catch (error) {
+        handleError(error, reply)
       }
+    },
 
-      reply.log.error(error)
-      return reply.code(500).send({ message: "Internal server error" })
-    }
-  }
+    resetPassword: async (request: FastifyRequest<{ Body: ResetPasswordInput }>, reply: FastifyReply) => {
+      try {
+        const response = await authService.resetPassword(request.body)
 
-  async resetPassword(request: FastifyRequest<{ Body: ResetPasswordInput }>, reply: FastifyReply) {
-    try {
-      const response = await this.resetPasswordUseCase.execute(request.body)
-
-      return reply.code(200).send({ message: response })
-    } catch (error) {
-      if (error instanceof ResponseError) {
-        return reply.code(error.statusCode).send({ message: error.message })
+        return reply.code(200).send({ message: response })
+      } catch (error) {
+        handleError(error, reply)
       }
-
-      reply.log.error(error)
-      return reply.code(500).send({ message: "Internal server error" })
-    }
+    },
   }
 }

@@ -20,5 +20,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false
-  }
+  },
+  "include": ["./src/**/*", "./prisma/**/*"],
+  "exclude": ["./dist/**/*", "./node_modules/**/*"]
 }

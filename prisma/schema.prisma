@@ -8,24 +8,29 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
   users     Invite[]
+  instances Instance[]
+  apiKeys   ApiKey[]
 
+  @@index([id])
   @@map("organizations")
 }
 
 model User {
-  id            String   @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String
-  email         String   @unique
+  email         String     @unique
   password      String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at")
   organizations Invite[]
+  instances     Instance[]
 
+  @@index([id])
   @@map("users")
 }
 
@@ -40,7 +45,57 @@ model Invite {
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
 
+  @@index([organizationId])
+  @@index([userId])
   @@map("invites")
+}
+
+model Instance {
+  id             String         @id @default(cuid())
+  name           String
+  number         String
+  status         InstanceStatus @default(DISCONNECTED)
+  metadata       Json?
+  profileName    String?        @map("profile_name")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at")
+  organizationId String         @map("organization_id")
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?        @map("user_id")
+  user           User?          @relation(fields: [userId], references: [id])
+  webhooks       Webhook[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("instances")
+}
+
+model Webhook {
+  id         String   @id @default(cuid())
+  payload    Json?
+  headers    Json?
+  events     String[] @default([])
+  enabled    Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  instanceId String   @map("instance_id")
+  instance   Instance @relation(fields: [instanceId], references: [id])
+
+  @@index([instanceId])
+  @@map("webhooks")
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  name           String
+  key            String       @unique
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
 }
 
 enum InviteStatus {
@@ -48,3 +103,16 @@ enum InviteStatus {
   APPROVED
   REJECTED
 }
+
+enum InstanceStatus {
+  CONNECTED
+  CONNECTING
+  DISCONNECTED
+}
+
+// enum WebhookEvent {
+//   MESSAGE_RECEIVED
+//   MESSAGE_SENT
+//   INSTANCE_CONNECTED
+//   INSTANCE_DISCONNECTED
+// }

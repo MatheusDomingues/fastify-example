@@ -1,44 +1,60 @@
-import { PrismaClient, Prisma } from "@prisma/client"
+import { PrismaClient, Prisma } from '@prisma/client'
 
-import { UserModel } from "../../domain/models/user.model.js"
+import { UserModel } from '../../domain/models/user.model.js'
 
-export class UserRepository {
-  constructor(private prisma: PrismaClient) {}
+export function UserRepository(prisma: PrismaClient) {
+  return {
+    findByEmail: async (email: string): Promise<UserModel | null> => {
+      return await prisma.user.findUnique({
+        where: { email },
+        include: {
+          organizations: {
+            include: {
+              organization: true,
+            },
+          },
+        },
+      })
+    },
 
-  async findByEmail(email: string): Promise<UserModel | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-      include: {
-        organizations: true,
-      },
-    })
-  }
+    findById: async (id: string): Promise<UserModel | null> => {
+      return await prisma.user.findUnique({
+        where: { id },
+        include: {
+          organizations: {
+            include: {
+              organization: true,
+            },
+          },
+        },
+      })
+    },
 
-  async findById(id: string): Promise<UserModel | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
-      include: {
-        organizations: true,
-      },
-    })
-  }
+    create: async (data: Prisma.UserCreateInput): Promise<UserModel> => {
+      return await prisma.user.create({
+        data,
+        include: {
+          organizations: {
+            include: {
+              organization: true,
+            },
+          },
+        },
+      })
+    },
 
-  async create(data: Prisma.UserCreateInput): Promise<UserModel> {
-    return this.prisma.user.create({
-      data,
-      include: {
-        organizations: true,
-      },
-    })
-  }
-
-  async update(id: string, data: Prisma.UserUpdateInput): Promise<UserModel | null> {
-    return this.prisma.user.update({
-      where: { id },
-      data,
-      include: {
-        organizations: true,
-      },
-    })
+    update: async (id: string, data: Prisma.UserUpdateInput): Promise<UserModel | null> => {
+      return await prisma.user.update({
+        where: { id },
+        data,
+        include: {
+          organizations: {
+            include: {
+              organization: true,
+            },
+          },
+        },
+      })
+    },
   }
 }

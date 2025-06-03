@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from 'zod'
 
 export const emptyResponse = z.null().optional()
-export const idParams = z.object({ id: z.string() })
+export const idParamsSchema = z.object({ id: z.string() })

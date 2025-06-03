@@ -1,26 +1,26 @@
-import { FastifyInstance } from "fastify"
-import { z } from "zod"
+import { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 
-import { AuthController } from "./auth.controller.js"
+import { AuthController } from './auth.controller.js'
 import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
   validateCodeSchema,
-} from "../../domain/schemas/auth.schema.js"
-import { userDtoSchema } from "../../domain/schemas/user.schema.js"
+} from './auth.schema.js'
+import { userDtoSchema } from '../user/user.schema.js'
 
 export async function authRoutes(app: FastifyInstance) {
-  const controller = new AuthController(app.prisma, app.redis)
+  const controller = AuthController(app.prisma, app.redis, app.mail)
 
   app.post(
-    "/register",
+    '/register',
     {
       schema: {
-        tags: ["Auth"],
-        summary: "Register a new user",
-        description: "Register a new user and create an organization",
+        tags: ['Auth'],
+        summary: 'Register a new user',
+        description: 'Register a new user and create an organization',
         body: registerSchema,
         response: {
           201: z.object({ message: z.string() }),
@@ -29,16 +29,16 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    controller.register.bind(controller)
+    controller.register
   )
 
   app.post(
-    "/login",
+    '/login',
     {
       schema: {
-        tags: ["Auth"],
-        summary: "Login a user",
-        description: "Login a user and return a token",
+        tags: ['Auth'],
+        summary: 'Login a user',
+        description: 'Login a user and return a token',
         body: loginSchema,
         response: {
           200: userDtoSchema,
@@ -47,15 +47,15 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    controller.login.bind(controller)
+    controller.login
   )
 
   app.post(
-    "/forgot-password",
+    '/forgot-password',
     {
       schema: {
-        tags: ["Auth"],
-        summary: "Forgot password",
+        tags: ['Auth'],
+        summary: 'Forgot password',
         description: "Send a code to the user's email to reset their password",
         body: forgotPasswordSchema,
         response: {
@@ -65,15 +65,15 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    controller.forgotPassword.bind(controller)
+    controller.forgotPassword
   )
 
   app.post(
-    "/validate-code",
+    '/validate-code',
     {
       schema: {
-        tags: ["Auth"],
-        summary: "Validate code to reset password",
+        tags: ['Auth'],
+        summary: 'Validate code to reset password',
         description: "Validate a code to reset a user's password",
         body: validateCodeSchema,
         response: {
@@ -83,15 +83,15 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    controller.validateCode.bind(controller)
+    controller.validateCode
   )
 
   app.post(
-    "/reset-password",
+    '/reset-password',
     {
       schema: {
-        tags: ["Auth"],
-        summary: "Reset password",
+        tags: ['Auth'],
+        summary: 'Reset password',
         description: "Reset a user's password",
         body: resetPasswordSchema,
         response: {
@@ -101,6 +101,6 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    controller.resetPassword.bind(controller)
+    controller.resetPassword
   )
 }

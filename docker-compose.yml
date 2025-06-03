@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000' # Mapeia a porta local para a porta do container
+    volumes:
+      - ./sessions:/app/sessions # volume para manter as sessões persistentes
+      - ./logs:/app/logs # (opcional) para logs persistentes
+      - ./.env:/app/.env # (opcional) para variáveis de ambiente
+    environment:
+      - NODE_ENV=production
+      - PORT=${PORT}
+      - POSTGRES_URL=${POSTGRES_URL}
+      - REDIS_URL=${REDIS_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}
