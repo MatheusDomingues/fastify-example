@@ -1,4 +1,3 @@
-import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
 import { AuthController } from './auth.controller.js'
@@ -9,10 +8,11 @@ import {
   resetPasswordSchema,
   validateCodeSchema,
 } from './auth.schema.js'
+import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 import { userDtoSchema } from '../user/user.schema.js'
 
-export async function authRoutes(app: FastifyInstance) {
-  const controller = AuthController(app.prisma, app.redis, app.mail)
+export async function authRoutes(app: FastifyTypedInstance) {
+  const controller = AuthController(app.prisma, app.redis, app.mail, app.jwt)
 
   app.post(
     '/register',

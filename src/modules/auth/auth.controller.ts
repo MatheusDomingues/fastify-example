@@ -11,7 +11,8 @@ import { UserRepository } from '../user/user.repository.js'
 export function AuthController(
   prisma: FastifyTypedInstance['prisma'],
   redis: FastifyTypedInstance['redis'],
-  mail: FastifyTypedInstance['mail']
+  mail: FastifyTypedInstance['mail'],
+  jwt: FastifyTypedInstance['jwt']
 ) {
   const userRepository = UserRepository(prisma)
   const organizationRepository = OrganizationRepository(prisma)
@@ -33,7 +34,15 @@ export function AuthController(
       try {
         const user = await authService.login(request.body)
 
-        reply.code(200).send(UserDto(user))
+        const organizationId = user.organizations[0]?.organization?.id
+        const token = jwt.sign({
+          sub: user.id,
+          name: user.name,
+          email: user.email,
+          organizationId: organizationId,
+        })
+
+        reply.code(200).send(UserDto(user, token, organizationId))
       } catch (error) {
         handleError(error, reply)
       }

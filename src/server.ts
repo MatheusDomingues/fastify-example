@@ -5,10 +5,12 @@ import { fastify } from 'fastify'
 import { validatorCompiler, serializerCompiler, ZodTypeProvider, jsonSchemaTransform } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 
+import { jwtPlugin } from './infra/plugins/jwt.plugin.js'
 import { mailPlugin } from './infra/plugins/mail.plugin.js'
 import { prismaPlugin } from './infra/plugins/prisma.plugin.js'
 import { redisPlugin } from './infra/plugins/redis.plugin.js'
 import { authRoutes } from './modules/auth/auth.routes.js'
+import { instanceRoutes } from './modules/instance/instance.routes.js'
 
 const app = fastify({
   logger: {
@@ -32,6 +34,7 @@ app.register(fastifyCors, { origin: '*' })
 app.register(prismaPlugin)
 app.register(redisPlugin)
 app.register(mailPlugin)
+app.register(jwtPlugin)
 
 // Swagger
 app.register(fastifySwagger, {
@@ -55,6 +58,7 @@ app.register(fastifySwaggerUi, {
 
 // Routes
 app.register(authRoutes, { prefix: '/api/auth' })
+app.register(instanceRoutes, { prefix: '/api/instances' })
 app.register(() => {
   app.get(
     '/api/healthz',

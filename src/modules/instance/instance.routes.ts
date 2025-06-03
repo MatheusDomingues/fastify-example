@@ -1,16 +1,17 @@
-import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
 import { InstanceController } from './instance.controller.js'
 import { createInstanceSchema, updateInstanceSchema } from './instance.schema.js'
 import { idParamsSchema } from '../../shared/utils/zodUtils.js'
+import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 
-export async function instanceRoutes(app: FastifyInstance) {
+export async function instanceRoutes(app: FastifyTypedInstance) {
   const controller = InstanceController(app.prisma)
 
   app.post(
     '/instances',
     {
+      preValidation: app.authenticate,
       schema: {
         tags: ['Instances'],
         summary: 'Create a new instance',
@@ -28,6 +29,7 @@ export async function instanceRoutes(app: FastifyInstance) {
   app.get(
     '/instances',
     {
+      preValidation: app.authenticate,
       schema: {
         tags: ['Instances'],
         summary: 'Get all instances',
@@ -44,6 +46,7 @@ export async function instanceRoutes(app: FastifyInstance) {
   app.get(
     '/instances/:id',
     {
+      preValidation: app.authenticate,
       schema: {
         tags: ['Instances'],
         summary: 'Get an instance by id',
@@ -61,6 +64,7 @@ export async function instanceRoutes(app: FastifyInstance) {
   app.put(
     '/instances/:id',
     {
+      preValidation: app.authenticate,
       schema: {
         tags: ['Instances'],
         summary: 'Update an instance by id',
@@ -79,6 +83,7 @@ export async function instanceRoutes(app: FastifyInstance) {
   app.delete(
     '/instances/:id',
     {
+      preValidation: app.authenticate,
       schema: {
         tags: ['Instances'],
         summary: 'Delete an instance by id',

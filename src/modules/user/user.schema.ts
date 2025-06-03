@@ -8,7 +8,8 @@ export const userDtoSchema = z.object({
   updatedAt: z.date(),
   name: z.string(),
   email: z.string().email(),
-  status: z.string(),
+  access_token: z.string().optional(),
+  organizationId: z.string().optional(),
   organizations: z.array(z.lazy(() => organizationDtoSchema.omit({ users: true }))),
 })
 
