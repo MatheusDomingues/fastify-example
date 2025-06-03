@@ -7,6 +7,9 @@ export const prismaPlugin = fp(async app => {
   app.decorate("prisma", prisma)
 
   app.addHook("onClose", async app => {
+    app.log.info("Disconnecting from prisma...")
     await app.prisma.$disconnect()
   })
+
+  app.log.info("Prisma connected!")
 })

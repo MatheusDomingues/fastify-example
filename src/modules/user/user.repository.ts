@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client"
 
-import { UserModel } from "../domain/models/user.model.js"
+import { UserModel } from "../../domain/models/user.model.js"
 
 export class UserRepository {
   constructor(private prisma: PrismaClient) {}
@@ -25,6 +25,16 @@ export class UserRepository {
 
   async create(data: Prisma.UserCreateInput): Promise<UserModel> {
     return this.prisma.user.create({
+      data,
+      include: {
+        organizations: true,
+      },
+    })
+  }
+
+  async update(id: string, data: Prisma.UserUpdateInput): Promise<UserModel | null> {
+    return this.prisma.user.update({
+      where: { id },
       data,
       include: {
         organizations: true,

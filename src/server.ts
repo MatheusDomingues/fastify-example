@@ -5,8 +5,9 @@ import { fastify } from "fastify"
 import { validatorCompiler, serializerCompiler, ZodTypeProvider, jsonSchemaTransform } from "fastify-type-provider-zod"
 import { z } from "zod"
 
-import { prismaPlugin } from "./plugins/prisma.plugin.js"
-import { authRoutes } from "./routes/auth.routes.js"
+import { prismaPlugin } from "./infra/plugins/prisma.plugin.js"
+import { redisPlugin } from "./infra/plugins/redis.plugin.js"
+import { authRoutes } from "./modules/auth/auth.routes.js"
 
 const app = fastify({
   logger: {
@@ -21,12 +22,16 @@ const app = fastify({
   },
 }).withTypeProvider<ZodTypeProvider>()
 
+// Validators
 app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
 
+// Plugins
 app.register(fastifyCors, { origin: "*" })
 app.register(prismaPlugin)
+app.register(redisPlugin)
 
+// Swagger
 app.register(fastifySwagger, {
   openapi: {
     info: {
@@ -46,12 +51,14 @@ app.register(fastifySwaggerUi, {
   routePrefix: "/docs",
 })
 
+// Routes
+app.register(authRoutes)
 app.register(() => {
   app.get(
     "/healthz",
     {
       schema: {
-        tags: ["Healthcheck"],
+        tags: ["Health-Check"],
         summary: "Checa se o servidor está online",
         response: { 200: z.string() },
       },
@@ -61,7 +68,6 @@ app.register(() => {
     }
   )
 })
-app.register(authRoutes)
 
-// listen
+// Listen
 app.listen({ port: Number(process.env.PORT) || 3333 })

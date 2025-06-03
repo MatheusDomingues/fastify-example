@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client"
 
-import { OrganizationModel } from "../domain/models/organization.model.js"
+import { OrganizationModel } from "../../domain/models/organization.model.js"
 
 export class OrganizationRepository {
   constructor(private prisma: PrismaClient) {}

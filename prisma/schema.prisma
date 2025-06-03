@@ -19,7 +19,7 @@ model Organization {
 
 model User {
   id            String   @id @default(cuid())
-  name          String?
+  name          String
   email         String   @unique
   password      String?
   createdAt     DateTime @default(now()) @map("created_at")
@@ -30,7 +30,7 @@ model User {
 }
 
 model Invite {
-  id             String       @id @default(cuid())
+  id             Int          @id @default(autoincrement())
   email          String
   status         InviteStatus @default(PENDING)
   createdAt      DateTime     @default(now()) @map("created_at")

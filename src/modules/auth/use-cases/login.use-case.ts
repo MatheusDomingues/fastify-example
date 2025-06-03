@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
-import { UserModel } from "../../domain/models/user.model.js"
-import { LoginInput } from "../../domain/schemas/auth.schema.js"
-import { ResponseError } from "../../utils/response-error.js"
+import { UserModel } from "../../../domain/models/user.model.js"
+import { LoginInput } from "../../../domain/schemas/auth.schema.js"
+import { ResponseError } from "../../../shared/utils/response-error.js"
 
 export class LoginUseCase {
   constructor(private prisma: PrismaClient) {}

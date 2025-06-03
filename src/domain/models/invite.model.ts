@@ -4,7 +4,7 @@ import { OrganizationModel } from "./organization.model.js"
 import { UserModel } from "./user.model.js"
 
 export class InviteModel implements Invite {
-  id: string
+  id: number
   email: string
   status: $Enums.InviteStatus
   createdAt: Date
@@ -15,7 +15,7 @@ export class InviteModel implements Invite {
   user?: UserModel
 
   constructor(data: {
-    id?: string
+    id?: number
     email: string
     status?: $Enums.InviteStatus
     userId?: string | null

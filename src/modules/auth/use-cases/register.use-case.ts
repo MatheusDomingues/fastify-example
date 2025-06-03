@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs"
 
-import { RegisterInput } from "../../domain/schemas/auth.schema.js"
-import { OrganizationRepository } from "../../repositories/organization.repository.js"
-import { UserRepository } from "../../repositories/user.repository.js"
-import { ResponseError } from "../../utils/response-error.js"
+import { RegisterInput } from "../../../domain/schemas/auth.schema.js"
+import { ResponseError } from "../../../shared/utils/response-error.js"
+import { OrganizationRepository } from "../../organization/organization.repository.js"
+import { UserRepository } from "../../user/user.repository.js"
 
 export class RegisterUseCase {
   constructor(
