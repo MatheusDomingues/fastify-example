@@ -5,6 +5,7 @@ import { fastify } from 'fastify'
 import { validatorCompiler, serializerCompiler, ZodTypeProvider, jsonSchemaTransform } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 
+import { bullMQPlugin } from './infra/plugins/bullmq.plugin.js'
 import { jwtPlugin } from './infra/plugins/jwt.plugin.js'
 import { mailPlugin } from './infra/plugins/mail.plugin.js'
 import { prismaPlugin } from './infra/plugins/prisma.plugin.js'
@@ -35,6 +36,7 @@ app.register(prismaPlugin)
 app.register(redisPlugin)
 app.register(mailPlugin)
 app.register(jwtPlugin)
+app.register(bullMQPlugin)
 
 // Swagger
 app.register(fastifySwagger, {
@@ -49,6 +51,16 @@ app.register(fastifySwagger, {
         description: 'Servidor local',
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
   },
   transform: jsonSchemaTransform,
 })

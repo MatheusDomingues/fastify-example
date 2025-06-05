@@ -1,7 +1,9 @@
 import fastifyJwt from '@fastify/jwt'
 import fp from 'fastify-plugin'
 
-export const jwtPlugin = fp(async app => {
+import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
+
+export const jwtPlugin = fp(async (app: FastifyTypedInstance) => {
   app.register(fastifyJwt, {
     secret: process.env.JWT_SECRET || 'supersecret',
     sign: {

@@ -8,16 +8,11 @@ import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 import { OrganizationRepository } from '../organization/organization.repository.js'
 import { UserRepository } from '../user/user.repository.js'
 
-export function AuthController(
-  prisma: FastifyTypedInstance['prisma'],
-  redis: FastifyTypedInstance['redis'],
-  mail: FastifyTypedInstance['mail'],
-  jwt: FastifyTypedInstance['jwt']
-) {
-  const userRepository = UserRepository(prisma)
-  const organizationRepository = OrganizationRepository(prisma)
+export function AuthController(app: FastifyTypedInstance) {
+  const userRepository = UserRepository(app.prisma)
+  const organizationRepository = OrganizationRepository(app.prisma)
 
-  const authService = AuthService(redis, mail, userRepository, organizationRepository)
+  const authService = AuthService(app.redis, app.mail, userRepository, organizationRepository)
 
   return {
     register: async (request: FastifyRequest<{ Body: RegisterInput }>, reply: FastifyReply) => {
@@ -35,7 +30,7 @@ export function AuthController(
         const user = await authService.login(request.body)
 
         const organizationId = user.organizations[0]?.organization?.id
-        const token = jwt.sign({
+        const token = app.jwt.sign({
           sub: user.id,
           name: user.name,
           email: user.email,

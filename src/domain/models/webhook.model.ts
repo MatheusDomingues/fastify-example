@@ -1,15 +1,10 @@
-import { Prisma } from '@prisma/client'
-
-import { InstanceModel } from './instance.model.js'
+import { InstanceWebhookModel } from './instance-webhook.model.js'
 
 export type WebhookModel = {
   id: string
   createdAt: Date
   updatedAt: Date
-  instanceId: string
+  url: string
   enabled: boolean
-  payload?: Prisma.JsonValue
-  headers?: Prisma.JsonValue
-  events?: string[]
-  instance?: InstanceModel
+  instances?: InstanceWebhookModel[]
 }

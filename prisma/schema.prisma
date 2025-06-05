@@ -45,44 +45,70 @@ model Invite {
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
 
+  @@index([id])
   @@index([organizationId])
   @@index([userId])
   @@map("invites")
 }
 
 model Instance {
-  id             String         @id @default(cuid())
-  name           String
-  number         String
-  status         InstanceStatus @default(DISCONNECTED)
-  metadata       Json?
-  profileName    String?        @map("profile_name")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at")
-  organizationId String         @map("organization_id")
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String?        @map("user_id")
-  user           User?          @relation(fields: [userId], references: [id])
-  webhooks       Webhook[]
+  id                        String              @id @default(cuid())
+  name                      String
+  number                    String
+  status                    InstanceStatus      @default(DISCONNECTED)
+  metadata                  Json?
+  profileName               String?             @map("profile_name")
+  imageUrl                  String?             @map("image_url")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @default(now()) @updatedAt @map("updated_at")
+  readMessagesAutomatically Boolean             @default(false) @map("read_messages_automatically")
+  messageDelayMin           Int?                @map("message_delay_min")
+  messageDelayMax           Int?                @map("message_delay_max")
+  simulateTyping            Boolean             @default(false) @map("simulate_typing")
+  deleteMessageAfterSend    Boolean             @default(false) @map("delete_message_after_send")
+  manageReceivedCalls       ManageReceivedCalls @default(NEVER) @map("manage_received_calls")
+  statusVisibility          StatusVisibility    @default(TYPING) @map("status_visibility")
+  organizationId            String              @map("organization_id")
+  organization              Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId                    String?             @map("user_id")
+  user                      User?               @relation(fields: [userId], references: [id])
+  webhooks                  InstanceWebhook[]
 
+  @@index([id])
   @@index([organizationId])
   @@index([userId])
   @@map("instances")
 }
 
 model Webhook {
-  id         String   @id @default(cuid())
-  payload    Json?
-  headers    Json?
-  events     String[] @default([])
-  enabled    Boolean  @default(false)
+  id        String            @id @default(cuid())
+  url       String
+  enabled   Boolean           @default(false)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @default(now()) @updatedAt @map("updated_at")
+  instances InstanceWebhook[]
+
+  @@index([id])
+  @@map("webhooks")
+}
+
+model InstanceWebhook {
+  id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+  enabled    Boolean  @default(true)
+  payload    Json?
+  headers    Json?
+  urlTest    String?  @map("url_test")
+  events     String[] @default([])
   instanceId String   @map("instance_id")
   instance   Instance @relation(fields: [instanceId], references: [id])
+  webhookId  String   @map("webhook_id")
+  webhook    Webhook  @relation(fields: [webhookId], references: [id])
 
   @@index([instanceId])
-  @@map("webhooks")
+  @@index([webhookId])
+  @@map("instances_webhooks")
 }
 
 model ApiKey {
@@ -94,6 +120,7 @@ model ApiKey {
   organizationId String       @map("organization_id")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([id])
   @@index([organizationId])
   @@map("api_keys")
 }
@@ -108,6 +135,18 @@ enum InstanceStatus {
   CONNECTED
   CONNECTING
   DISCONNECTED
+}
+
+enum ManageReceivedCalls {
+  NEVER
+  AUDIO_ONLY
+  VIDEO_ONLY
+}
+
+enum StatusVisibility {
+  TYPING
+  ONLINE
+  OFFLINE
 }
 
 // enum WebhookEvent {

@@ -6,7 +6,7 @@ import { idParamsSchema } from '../../shared/utils/zodUtils.js'
 import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 
 export async function instanceRoutes(app: FastifyTypedInstance) {
-  const controller = InstanceController(app.prisma)
+  const controller = InstanceController(app)
 
   app.post(
     '/instances',
@@ -59,6 +59,24 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
       },
     },
     controller.findById
+  )
+
+  app.get(
+    '/instances/:id/qrcode',
+    {
+      preValidation: app.authenticate,
+      schema: {
+        tags: ['Instances'],
+        summary: 'Get qrcode of an instance by id',
+        params: idParamsSchema,
+        response: {
+          200: z.instanceof(Buffer).or(z.instanceof(Uint8Array)),
+          400: z.object({ message: z.string() }),
+          500: z.object({ message: z.string() }),
+        },
+      },
+    },
+    controller.findQrCode
   )
 
   app.put(

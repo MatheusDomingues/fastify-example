@@ -1,8 +1,8 @@
-import { InstanceStatus, Prisma } from '@prisma/client'
+import { InstanceStatus, ManageReceivedCalls, Prisma, StatusVisibility } from '@prisma/client'
 
+import { InstanceWebhookModel } from './instance-webhook.model.js'
 import { OrganizationModel } from './organization.model.js'
 import { UserModel } from './user.model.js'
-import { WebhookModel } from './webhook.model.js'
 
 export type InstanceModel = {
   id: string
@@ -12,10 +12,18 @@ export type InstanceModel = {
   number: string
   status: InstanceStatus
   organizationId: string
-  organization: OrganizationModel
   metadata?: Prisma.JsonValue
   profileName?: string
+  imageUrl?: string
   userId?: string
+  readMessagesAutomatically?: boolean
+  messageDelayMin?: number
+  messageDelayMax?: number
+  simulateTyping?: boolean
+  deleteMessageAfterSend?: boolean
+  manageReceivedCalls?: ManageReceivedCalls
+  statusVisibility?: StatusVisibility
   user?: UserModel
-  webhooks?: WebhookModel[]
+  organization?: OrganizationModel
+  webhooks?: InstanceWebhookModel[]
 }

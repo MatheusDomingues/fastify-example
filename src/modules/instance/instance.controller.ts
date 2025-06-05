@@ -1,30 +1,33 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 
 import { InstanceRepository } from './instance.repository.js'
+import { CreateInstanceInput } from './instance.schema.js'
 import { InstanceService } from './instance.service.js'
+import { InstanceDto } from '../../domain/dtos/instance.dto.js'
 import { BaileysService } from '../../shared/services/baileys.service.js'
 import { handleError } from '../../shared/utils/handle-error.js'
 import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 
-export function InstanceController(prisma: FastifyTypedInstance['prisma']) {
-  const baileysService = BaileysService()
-  const instanceRepository = InstanceRepository(prisma)
-  const service = InstanceService(instanceRepository, baileysService)
+export function InstanceController(app: FastifyTypedInstance) {
+  const instanceRepository = InstanceRepository(app.prisma)
+  const baileysService = BaileysService(app, instanceRepository)
+  const instanceService = InstanceService(instanceRepository, baileysService, app.redis)
 
   return {
-    create: async (request: FastifyRequest, reply: FastifyReply) => {
+    create: async (request: FastifyRequest<{ Body: CreateInstanceInput }>, reply: FastifyReply) => {
       try {
-        const instance = await service.create(request.body)
-        reply.code(201).send(instance)
+        const instance = await instanceService.create(request.body, app.user)
+
+        reply.code(201).send(InstanceDto(instance))
       } catch (error) {
         handleError(error, reply)
       }
     },
 
-    findAll: async (request: FastifyRequest, reply: FastifyReply) => {
+    findAll: async (_: FastifyRequest, reply: FastifyReply) => {
       try {
-        const instances = await service.findAll()
-        reply.send(instances)
+        const instances = await instanceService.findAll()
+        reply.code(200).send(instances.map(instance => InstanceDto(instance)))
       } catch (error) {
         handleError(error, reply)
       }
@@ -32,8 +35,8 @@ export function InstanceController(prisma: FastifyTypedInstance['prisma']) {
 
     findById: async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       try {
-        const instance = await service.findById(request.params.id)
-        reply.send(instance)
+        const instance = await instanceService.findById(request.params.id)
+        reply.code(200).send(InstanceDto(instance))
       } catch (error) {
         handleError(error, reply)
       }
@@ -41,8 +44,8 @@ export function InstanceController(prisma: FastifyTypedInstance['prisma']) {
 
     update: async (request: FastifyRequest<{ Params: { id: string }; Body: any }>, reply: FastifyReply) => {
       try {
-        const instance = await service.update(request.params.id, request.body)
-        reply.send(instance)
+        const instance = await instanceService.update(request.params.id, request.body)
+        reply.code(200).send(instance)
       } catch (error) {
         handleError(error, reply)
       }
@@ -50,8 +53,19 @@ export function InstanceController(prisma: FastifyTypedInstance['prisma']) {
 
     delete: async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       try {
-        const instance = await service.delete(request.params.id)
-        reply.send({ message: 'Instance deleted', instance })
+        await instanceService.delete(request.params.id)
+
+        reply.code(200).send({ message: 'Instance deleted' })
+      } catch (error) {
+        handleError(error, reply)
+      }
+    },
+
+    findQrCode: async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      try {
+        const qrCode = await instanceService.findQrCode(request.params.id)
+
+        reply.code(200).send(qrCode)
       } catch (error) {
         handleError(error, reply)
       }

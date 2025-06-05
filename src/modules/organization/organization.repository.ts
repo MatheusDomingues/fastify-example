@@ -17,7 +17,9 @@ export function OrganizationRepository(prisma: PrismaClient) {
       })
     },
 
-    create: async (data: Prisma.OrganizationCreateInput): Promise<OrganizationModel> => {
+    create: async (
+      data: Prisma.OrganizationCreateInput | Prisma.OrganizationUncheckedCreateInput
+    ): Promise<OrganizationModel> => {
       return await prisma.organization.create({
         data,
         include: {

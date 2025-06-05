@@ -30,7 +30,7 @@ export function UserRepository(prisma: PrismaClient) {
       })
     },
 
-    create: async (data: Prisma.UserCreateInput): Promise<UserModel> => {
+    create: async (data: Prisma.UserCreateInput | Prisma.UserUncheckedCreateInput): Promise<UserModel> => {
       return await prisma.user.create({
         data,
         include: {
@@ -43,7 +43,10 @@ export function UserRepository(prisma: PrismaClient) {
       })
     },
 
-    update: async (id: string, data: Prisma.UserUpdateInput): Promise<UserModel | null> => {
+    update: async (
+      id: string,
+      data: Prisma.UserUpdateInput | Prisma.UserUncheckedUpdateInput
+    ): Promise<UserModel | null> => {
       return await prisma.user.update({
         where: { id },
         data,
