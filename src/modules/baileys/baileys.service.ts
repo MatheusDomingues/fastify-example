@@ -1,142 +1,98 @@
 import fs from 'fs'
 import { join } from 'path'
 
-import { useMultiFileAuthState, DisconnectReason, makeWASocket, WASocket } from '@whiskeysockets/baileys'
+import { useMultiFileAuthState, makeWASocket, WASocket } from '@whiskeysockets/baileys'
 
-import { BaileysRepository } from './baileys.repository.js'
 import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 import { InstanceRepository } from '../instance/instance.repository.js'
 
-export function BaileysService(
-  app: FastifyTypedInstance,
-  baileysRepository: ReturnType<typeof BaileysRepository>,
-  instanceRepository: ReturnType<typeof InstanceRepository>
-) {
+export function BaileysService(app: FastifyTypedInstance, instanceRepository: ReturnType<typeof InstanceRepository>) {
   const sessionBasePath = join(process.cwd(), 'sessions')
 
   async function createBaileysInstance(instanceId: string): Promise<WASocket> {
-    app.log.info(`Criando instância ${instanceId}`)
+    app.log.info(`Creating instance ${instanceId}`)
     const sessionFolder = join(sessionBasePath, instanceId)
 
     if (!fs.existsSync(sessionFolder)) {
-      app.log.info(`Criando pasta da instância ${instanceId}`)
+      app.log.debug(`Creating instance folder ${instanceId}`)
       fs.mkdirSync(sessionFolder, { recursive: true })
     }
 
-    app.log.info(`Criando estado da instância ${instanceId}`)
+    app.log.debug(`Creating instance state ${instanceId}`)
     const { state, saveCreds } = await useMultiFileAuthState(sessionFolder)
 
-    app.log.info(`Criando socket da instância ${instanceId}`)
+    app.log.debug(`Creating socket for instance ${instanceId}`)
     const sock = makeWASocket({
       auth: state,
-      printQRInTerminal: false, // Desliga QR no terminal pois vamos gerar a imagem
+      printQRInTerminal: false,
     })
 
-    baileysRepository.set(instanceId, sock)
+    app.baileysRepository.set(instanceId, sock)
 
-    app.log.info(`Encontrando configuração da instância ${instanceId}`)
-    let instanceConfig = await instanceRepository.findById(instanceId)
+    app.log.debug(`Finding instance configuration ${instanceId}`)
+    const instanceConfig = await instanceRepository.findById(instanceId)
 
-    app.log.info(`Encontrando novo perfil e imagem da instância ${instanceId}`)
+    app.log.debug(`Finding new profile and image ${instanceId}`)
     const newProfileName = state?.creds?.me?.name
     const newImageUrl = state?.creds?.me?.imgUrl
 
     if (instanceConfig.profileName !== newProfileName || instanceConfig.imageUrl !== newImageUrl) {
-      app.log.info(`Atualizando perfil e imagem da instância ${instanceId}`)
-      instanceConfig = await instanceRepository.update(instanceId, {
+      app.log.debug(`Updating profile and image ${instanceId}`)
+      await instanceRepository.update(instanceId, {
         profileName: newProfileName,
         imageUrl: newImageUrl,
       })
     }
 
-    app.log.info(`Adicionando evento de atualização de credenciais`)
+    app.log.debug(`Adding credentials update event`)
     sock.ev.on('creds.update', saveCreds)
 
-    app.log.info(`Adicionando evento de atualização de conexão`)
+    app.log.debug(`Adding connection update event`)
     sock.ev.on('connection.update', async update => {
       try {
-        app.log.info(`Atualizando status da instância ${instanceId}`)
-        instanceConfig = await instanceRepository.findById(instanceId)
+        app.log.debug(`Sending connection update event to queue ${instanceId}`)
 
-        const { qr, connection, lastDisconnect } = update
+        await app.queues.send('baileys.connection.update', instanceId, {
+          instanceId,
+          update,
+        })
 
-        if (qr) {
-          app.log.info(`Salvando QR da instância ${instanceId}`)
-          await app.redis.set(`whatsapp:qr:${instanceId}`, qr)
-        }
-        if (
-          connection === 'open' ||
-          (connection === 'close' && (lastDisconnect?.error as any)?.output?.statusCode === DisconnectReason.loggedOut)
-        ) {
-          app.log.info(`Deletando QR da instância ${instanceId}`)
-          await app.redis.del(`whatsapp:qr:${instanceId}`)
-        }
-        const newState =
-          connection === 'open' ? 'CONNECTED' : connection === 'connecting' ? 'CONNECTING' : 'DISCONNECTED'
-
-        if (instanceConfig?.status !== newState) {
-          app.log.info(`Atualizando status da instância ${instanceId} para ${newState}`)
-          instanceConfig = await instanceRepository.update(instanceId, {
-            status: newState,
-          })
-        }
+        app.log.debug(`Connection update sent to queue ${instanceId}`)
       } catch (error) {
-        app.log.error(`Erro ao atualizar status da instância ${instanceId}: ${error}`)
+        app.log.error(`Error to send connection update to queue ${instanceId}: ${error}`)
       }
     })
 
-    app.log.info(`Adicionando evento de recebimento de mensagens`)
+    app.log.debug(`Adding message receipt event`)
     sock.ev.on('messages.upsert', async m => {
       try {
-        app.log.info(`Recebendo mensagens na instância ${instanceId}`)
-        instanceConfig = await instanceRepository.findById(instanceId)
+        app.log.debug(`Sending messages to queue ${instanceId}`)
 
-        if (instanceConfig?.readMessagesAutomatically) {
-          await sock.readMessages(m.messages.map(msg => msg.key))
-        }
+        await app.queues.send('baileys.messages.upsert', instanceId, {
+          instanceId,
+          messages: m.messages,
+          type: m.type,
+        })
 
-        if (instanceConfig?.simulateTyping) {
-          const typingDelayMin = Math.max(0, Math.min(instanceConfig.messageDelayMin || 3, 30))
-          const typingDelayMax = Math.max(0, Math.min(instanceConfig.messageDelayMax || 10, 30))
-
-          const typingDelay = Math.random() * (typingDelayMax - typingDelayMin) + typingDelayMin
-
-          const remoteJid = m.messages[0].key.remoteJid
-
-          await sock.presenceSubscribe(remoteJid)
-
-          setTimeout(() => {
-            sock.sendPresenceUpdate('unavailable', remoteJid)
-            app.log.info(`Simulação de digitação finalizada na instância ${instanceId}`)
-          }, typingDelay * 1000)
-        }
-
-        app.log.info(`Mensagens recebidas na instância ${instanceId}`)
+        app.log.info(`Messages sent to queue ${instanceId}`)
       } catch (error) {
-        app.log.error(`Erro ao processar mensagens na instância ${instanceId}: ${error}`)
+        app.log.error(`Error to send messages to queue ${instanceId}: ${error}`)
       }
     })
 
-    app.log.info(`Adicionando evento de recebimento de chamadas`)
+    app.log.info(`Adding call receipt event`)
     sock.ev.on('call', async calls => {
-      instanceConfig = await instanceRepository.findById(instanceId)
+      try {
+        app.log.debug(`Sending messages to queue ${instanceId}`)
 
-      if (!instanceConfig) return
-      const call = calls[0]
+        await app.queues.send('baileys.call', instanceId, {
+          instanceId,
+          calls,
+        })
 
-      if (!call) return
-      if (instanceConfig.manageReceivedCalls === 'AUDIO_ONLY' && !call.isVideo) {
-        await sock.rejectCall(call.id, call.from)
-        app.log.info(`Chamada de áudio recusada para a instância ${instanceId}`)
-      }
-
-      if (instanceConfig.manageReceivedCalls === 'VIDEO_ONLY' && call.isVideo) {
-        await sock.rejectCall(call.id, call.from)
-        app.log.info(`Chamada de vídeo recusada para a instância ${instanceId}`)
-      }
-
-      if (instanceConfig.manageReceivedCalls === 'NEVER') {
-        app.log.info(`Chamada aceita para a instância ${instanceId}`)
+        app.log.debug(`Messages sent to queue ${instanceId}`)
+      } catch (error) {
+        app.log.error(`Error to send messages to queue ${instanceId}: ${error}`)
       }
     })
 
@@ -144,7 +100,7 @@ export function BaileysService(
   }
 
   async function deleteBaileysInstance(instanceId: string): Promise<void> {
-    app.log.info(`Deletando instância ${instanceId}`)
+    app.log.info(`Deleting instance ${instanceId}`)
     try {
       const sessionFolder = join(sessionBasePath, instanceId)
 
@@ -156,14 +112,14 @@ export function BaileysService(
 
       if (keys.length > 0) {
         await app.redis.del(...keys)
-        app.log.info(`Chaves deletadas para a instância ${instanceId}:`, keys)
+        app.log.debug(`Keys deleted for instance ${instanceId}:`, keys)
       } else {
-        app.log.info(`Nenhuma chave encontrada para a instância ${instanceId}`)
+        app.log.debug(`No keys found for instance ${instanceId}`)
       }
 
-      app.log.info(`Instância ${instanceId} deletada com sucesso!`)
+      app.log.info(`Instance ${instanceId} deleted successfully!`)
     } catch (error) {
-      app.log.error(`Erro ao deletar instância ${instanceId}: ${error}`)
+      app.log.error(`Error deleting instance ${instanceId}: ${error}`)
     }
   }
 

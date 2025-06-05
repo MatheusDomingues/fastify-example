@@ -6,6 +6,7 @@ import { validatorCompiler, serializerCompiler, ZodTypeProvider, jsonSchemaTrans
 import { z } from 'zod'
 
 import { authDecorator } from './infra/decorators/auth.decorator.js'
+import { baileysPlugin } from './infra/plugins/baileys.plugin.js'
 import { bootstrapPlugin } from './infra/plugins/bootstrap.plugin.js'
 import { bullMQPlugin } from './infra/plugins/bullmq.plugin.js'
 import { envsValidatorPlugin } from './infra/plugins/envs-validator.plugin.js'
@@ -16,6 +17,9 @@ import { redisPlugin } from './infra/plugins/redis.plugin.js'
 import { apiKeyRoutes } from './modules/api-key/api-key.routes.js'
 import { authRoutes } from './modules/auth/auth.routes.js'
 import { instanceRoutes } from './modules/instance/instance.routes.js'
+import { callWorker } from './workers/call.worker.js'
+import { connectionUpdateWorker } from './workers/connection-update.worker.js'
+import { messagesUpsertWorker } from './workers/messages-upsert.worker.js'
 
 const app = fastify({
   logger: {
@@ -42,6 +46,7 @@ app.register(redisPlugin)
 app.register(mailPlugin)
 app.register(jwtPlugin)
 app.register(bullMQPlugin)
+app.register(baileysPlugin)
 
 // Decorators
 app.register(authDecorator)
@@ -80,7 +85,6 @@ app.register(fastifySwaggerUi, {
 app.register(authRoutes, { prefix: '/api/v1/auth' })
 app.register(instanceRoutes, { prefix: '/api/v1/instances' })
 app.register(apiKeyRoutes, { prefix: '/api/v1/api-keys' })
-
 app.register(() => {
   app.get(
     '/api/v1/healthz',
@@ -97,12 +101,19 @@ app.register(() => {
   )
 })
 
+// Workers
+app.register(connectionUpdateWorker)
+app.register(messagesUpsertWorker)
+app.register(callWorker)
+
 // Listen
 async function start() {
   await app.register(bootstrapPlugin)
+
   await app.listen({ port: Number(process.env.PORT) || 5000 })
 }
 
+// Start
 start().catch(err => {
   app.log.error(err, 'Erro ao iniciar o servidor')
   process.exit(1)

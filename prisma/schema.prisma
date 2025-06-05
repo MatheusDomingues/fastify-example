@@ -141,6 +141,7 @@ enum ManageReceivedCalls {
   NEVER
   AUDIO_ONLY
   VIDEO_ONLY
+  ALL
 }
 
 enum StatusVisibility {

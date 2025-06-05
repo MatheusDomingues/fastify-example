@@ -5,6 +5,8 @@ import { QueueOptions, WorkerOptions } from 'bullmq'
 import Redis from 'ioredis'
 import { Resend } from 'resend'
 
+import { BaileysRepository } from '../modules/baileys/baileys.repository.ts'
+
 interface Queues {
   send: <T = any>(
     queueName: string,
@@ -28,6 +30,7 @@ declare module 'fastify' {
     mail: Resend
     jwt: JWT
     queues: Queues
+    baileysRepository: ReturnType<typeof BaileysRepository>
     worker: WorkerFactory
     authenticate: (
       request: FastifyRequest<{ Body: any; Params: any; Headers: any; Querystring: any }>,

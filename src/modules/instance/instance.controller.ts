@@ -6,13 +6,11 @@ import { InstanceService } from './instance.service.js'
 import { InstanceDto } from '../../domain/dtos/instance.dto.js'
 import { handleError } from '../../shared/utils/handle-error.js'
 import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
-import { BaileysRepository } from '../baileys/baileys.repository.js'
 import { BaileysService } from '../baileys/baileys.service.js'
 
 export function InstanceController(app: FastifyTypedInstance) {
   const instanceRepository = InstanceRepository(app.prisma)
-  const baileysRepository = BaileysRepository()
-  const baileysService = BaileysService(app, baileysRepository, instanceRepository)
+  const baileysService = BaileysService(app, instanceRepository)
   const instanceService = InstanceService(instanceRepository, baileysService, app.redis)
 
   return {
