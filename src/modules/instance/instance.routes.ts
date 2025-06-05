@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { InstanceController } from './instance.controller.js'
-import { createInstanceSchema, updateInstanceSchema } from './instance.schema.js'
+import { createInstanceSchema, instanceSchema, updateInstanceSchema } from './instance.schema.js'
 import { idParamsSchema } from '../../shared/utils/zodUtils.js'
 import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 
@@ -9,7 +9,7 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
   const controller = InstanceController(app)
 
   app.post(
-    '/instances',
+    '',
     {
       preValidation: app.authenticate,
       schema: {
@@ -17,7 +17,7 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
         summary: 'Create a new instance',
         body: createInstanceSchema,
         response: {
-          201: z.object({ message: z.string() }),
+          201: instanceSchema,
           400: z.object({ message: z.string() }),
           500: z.object({ message: z.string() }),
         },
@@ -27,14 +27,14 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
   )
 
   app.get(
-    '/instances',
+    '',
     {
       preValidation: app.authenticate,
       schema: {
         tags: ['Instances'],
         summary: 'Get all instances',
         response: {
-          200: z.object({ message: z.string() }),
+          200: z.array(instanceSchema),
           400: z.object({ message: z.string() }),
           500: z.object({ message: z.string() }),
         },
@@ -44,7 +44,7 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
   )
 
   app.get(
-    '/instances/:id',
+    '/:id',
     {
       preValidation: app.authenticate,
       schema: {
@@ -52,7 +52,7 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
         summary: 'Get an instance by id',
         params: idParamsSchema,
         response: {
-          200: z.object({ message: z.string() }),
+          200: instanceSchema,
           400: z.object({ message: z.string() }),
           500: z.object({ message: z.string() }),
         },
@@ -61,26 +61,8 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
     controller.findById
   )
 
-  app.get(
-    '/instances/:id/qrcode',
-    {
-      preValidation: app.authenticate,
-      schema: {
-        tags: ['Instances'],
-        summary: 'Get qrcode of an instance by id',
-        params: idParamsSchema,
-        response: {
-          200: z.instanceof(Buffer).or(z.instanceof(Uint8Array)),
-          400: z.object({ message: z.string() }),
-          500: z.object({ message: z.string() }),
-        },
-      },
-    },
-    controller.findQrCode
-  )
-
   app.put(
-    '/instances/:id',
+    '/:id',
     {
       preValidation: app.authenticate,
       schema: {
@@ -89,7 +71,7 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
         params: idParamsSchema,
         body: updateInstanceSchema,
         response: {
-          200: z.object({ message: z.string() }),
+          200: instanceSchema,
           400: z.object({ message: z.string() }),
           500: z.object({ message: z.string() }),
         },
@@ -99,7 +81,7 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
   )
 
   app.delete(
-    '/instances/:id',
+    '/:id',
     {
       preValidation: app.authenticate,
       schema: {
@@ -114,5 +96,23 @@ export async function instanceRoutes(app: FastifyTypedInstance) {
       },
     },
     controller.delete
+  )
+
+  app.get(
+    '/:id/qrcode',
+    {
+      preValidation: app.authenticate,
+      schema: {
+        tags: ['Instances'],
+        summary: 'Get qrcode of an instance by id',
+        params: idParamsSchema,
+        response: {
+          200: z.instanceof(Buffer).or(z.instanceof(Uint8Array)),
+          400: z.object({ message: z.string() }),
+          500: z.object({ message: z.string() }),
+        },
+      },
+    },
+    controller.findQrCode
   )
 }

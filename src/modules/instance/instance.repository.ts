@@ -15,8 +15,9 @@ export function InstanceRepository(prisma: PrismaClient) {
       })
     },
 
-    findAll: async () => {
+    findAll: async (where: Prisma.InstanceWhereInput) => {
       return await prisma.instance.findMany({
+        where,
         include: {
           webhooks: {
             include: {

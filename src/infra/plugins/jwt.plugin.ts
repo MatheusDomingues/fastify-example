@@ -5,18 +5,13 @@ import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
 
 export const jwtPlugin = fp(async (app: FastifyTypedInstance) => {
   app.register(fastifyJwt, {
-    secret: process.env.JWT_SECRET || 'supersecret',
+    secret: process.env.JWT_SECRET,
     sign: {
-      expiresIn: '1h',
+      algorithm: 'HS256',
+      iss: 'linkify-api',
+      aud: 'linkify-client',
+      expiresIn: process.env.JWT_EXPIRES_IN || '6h',
     },
-  })
-
-  // Decorar método de autenticação para proteger rotas
-  app.decorate('authenticate', async function (request, reply) {
-    try {
-      await request.jwtVerify()
-    } catch (err) {
-      reply.send(err)
-    }
+    verify: { algorithms: ['HS256'] },
   })
 })

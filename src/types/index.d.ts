@@ -34,10 +34,12 @@ declare module 'fastify' {
       reply: FastifyReply
     ) => Promise<void>
     user?: {
-      sub: string
-      email: string
-      name: string
+      sub?: string
+      email?: string
+      name?: string
       organizationId: string
+      apiKeyId?: string
+      type: 'user' | 'apiKey'
       [key: string]: any
     }
   }

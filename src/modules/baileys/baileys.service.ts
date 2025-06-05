@@ -3,10 +3,15 @@ import { join } from 'path'
 
 import { useMultiFileAuthState, DisconnectReason, makeWASocket, WASocket } from '@whiskeysockets/baileys'
 
-import { InstanceRepository } from '../../modules/instance/instance.repository.js'
+import { BaileysRepository } from './baileys.repository.js'
 import { FastifyTypedInstance } from '../../types/fastifyTypedInstance.js'
+import { InstanceRepository } from '../instance/instance.repository.js'
 
-export function BaileysService(app: FastifyTypedInstance, instanceRepository: ReturnType<typeof InstanceRepository>) {
+export function BaileysService(
+  app: FastifyTypedInstance,
+  baileysRepository: ReturnType<typeof BaileysRepository>,
+  instanceRepository: ReturnType<typeof InstanceRepository>
+) {
   const sessionBasePath = join(process.cwd(), 'sessions')
 
   async function createBaileysInstance(instanceId: string): Promise<WASocket> {
@@ -26,6 +31,8 @@ export function BaileysService(app: FastifyTypedInstance, instanceRepository: Re
       auth: state,
       printQRInTerminal: false, // Desliga QR no terminal pois vamos gerar a imagem
     })
+
+    baileysRepository.set(instanceId, sock)
 
     app.log.info(`Encontrando configuração da instância ${instanceId}`)
     let instanceConfig = await instanceRepository.findById(instanceId)
@@ -81,39 +88,32 @@ export function BaileysService(app: FastifyTypedInstance, instanceRepository: Re
     app.log.info(`Adicionando evento de recebimento de mensagens`)
     sock.ev.on('messages.upsert', async m => {
       try {
-        app.log.info(`Enviando mensagens para fila de instância ${instanceId}`)
+        app.log.info(`Recebendo mensagens na instância ${instanceId}`)
+        instanceConfig = await instanceRepository.findById(instanceId)
 
-        await app.queues.send('whatsapp:messages-upsert', instanceId, m.messages, {
-          defaultJobOptions: {
-            removeOnComplete: true,
-          },
-        })
+        if (instanceConfig?.readMessagesAutomatically) {
+          await sock.readMessages(m.messages.map(msg => msg.key))
+        }
 
-        app.log.info(`Mensagens enviadas para fila de instância ${instanceId}`)
+        if (instanceConfig?.simulateTyping) {
+          const typingDelayMin = Math.max(0, Math.min(instanceConfig.messageDelayMin || 3, 30))
+          const typingDelayMax = Math.max(0, Math.min(instanceConfig.messageDelayMax || 10, 30))
+
+          const typingDelay = Math.random() * (typingDelayMax - typingDelayMin) + typingDelayMin
+
+          const remoteJid = m.messages[0].key.remoteJid
+
+          await sock.presenceSubscribe(remoteJid)
+
+          setTimeout(() => {
+            sock.sendPresenceUpdate('unavailable', remoteJid)
+            app.log.info(`Simulação de digitação finalizada na instância ${instanceId}`)
+          }, typingDelay * 1000)
+        }
+
+        app.log.info(`Mensagens recebidas na instância ${instanceId}`)
       } catch (error) {
-        app.log.error(`Erro ao enviar mensagens para fila de instância ${instanceId}: ${error}`)
-      }
-
-      instanceConfig = await instanceRepository.findById(instanceId)
-
-      if (instanceConfig?.readMessagesAutomatically) {
-        await sock.readMessages(m.messages.map((msg: any) => msg.key))
-      }
-
-      if (instanceConfig?.simulateTyping) {
-        const typingDelayMin = Math.max(0, Math.min(instanceConfig.messageDelayMin || 3, 30))
-        const typingDelayMax = Math.max(0, Math.min(instanceConfig.messageDelayMax || 10, 30))
-
-        const typingDelay = Math.random() * (typingDelayMax - typingDelayMin) + typingDelayMin
-
-        const remoteJid = m.messages[0].key.remoteJid
-
-        await sock.presenceSubscribe(remoteJid)
-
-        setTimeout(() => {
-          sock.sendPresenceUpdate('unavailable', remoteJid)
-          app.log.info(`Simulação de digitação finalizada na instância ${instanceId}`)
-        }, typingDelay * 1000)
+        app.log.error(`Erro ao processar mensagens na instância ${instanceId}: ${error}`)
       }
     })
 
