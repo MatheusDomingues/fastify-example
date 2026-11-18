@@ -1,6 +1,6 @@
-# Linkify API
+# Fastify Example
 
-Back end of Linkify, a multi-tenant SaaS for automating customer messaging on WhatsApp. Each organization connects its own WhatsApp instances and integrates through API keys and webhooks. The front end lives in [vite-template](https://github.com/MatheusDomingues/vite-template).
+A multi-tenant API starter for WhatsApp messaging, built with Fastify. Each organization connects its own WhatsApp instances and integrates through API keys and webhooks. It started as the early base of Linkify and was kept as a template after the product evolved. It pairs with the [vite-template](https://github.com/MatheusDomingues/vite-template) front end.
 
 ## What's inside
 
